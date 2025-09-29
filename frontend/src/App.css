@@ -1,0 +1,97 @@
+/* frontend/src/App.css - VERSÃO PROFISSIONAL */
+
+/* --- Estilos Base --- */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f0f2f5; /* Um cinza de fundo mais suave */
+  color: #1c1e21; /* Cor de texto padrão (escuro) */
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+/* --- Container Principal do Formulário --- */
+.form-container {
+  background: #ffffff;
+  padding: 2rem 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid #dddfe2;
+}
+
+/* --- Títulos --- */
+h1 {
+  text-align: center;
+  color: #1877f2; /* Um tom de azul para o título principal */
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+h2 {
+  color: #4b4f56;
+  font-size: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 0.5rem;
+}
+
+/* --- Grupos de Campos (Label + Input) --- */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #606770;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* --- Estilos para Inputs e Textareas --- */
+.form-group input[type="text"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccd0d5;
+  border-radius: 6px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1877f2;
+  box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+}
+
+/* --- Botão Principal --- */
+button {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background-color: #1877f2;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 1rem;
+}
+
+button:hover:not(:disabled) {
+  background-color: #166fe5;
+}
+
+button:disabled {
+  background-color: #a0bdf5;
+  cursor: not-allowed;
+}
