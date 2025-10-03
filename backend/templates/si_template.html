@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"><title>Shipping Instruction</title>
+    <style>
+        @page { size: A4; margin: 1cm; }
+        body { font-family: 'Arial', sans-serif; font-size: 8px; color: #000; }
+        .si-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .si-table th, .si-table td { border: 1px solid #000; padding: 3px 4px; text-align: left; vertical-align: top; }
+        .si-table th { font-weight: bold; text-transform: uppercase; font-size: 7px; background-color: #f2f2f2; }
+        .data-value { font-weight: normal; white-space: pre-wrap; word-wrap: break-word; }
+        .header-table td { border: none; vertical-align: bottom; padding: 0; }
+        .header-table .logo-container { width: 50%; }
+        .header-table .title-container { width: 50%; text-align: right; }
+        .logo { max-width: 150px; max-height: 50px; }
+        h1 { font-size: 24px; font-weight: bold; margin: 0; }
+        h2 { font-size: 10px; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 1px solid #000; padding-bottom: 2px;}
+        .page-break { page-break-before: always; }
+        .no-border { border: none !important; }
+        .no-border td { border: none !important; }
+        .sub-header { font-size: 7px; font-weight: normal; text-transform: none; }
+    </style>
+</head>
+<body>
+    <table class="header-table si-table">
+        <tr>
+            <td class="logo-container">
+                <img src="data:image/png;base64,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" alt="Logo da Empresa" class="logo">
+            </td>
+            <td class="title-container"><h1>Shipping Instruction</h1></td>
+        </tr>
+    </table>
+    <table class="si-table no-border" style="font-size: 7px; margin-bottom: 10px;">
+        <tr>
+            <td><strong>Si Requestor Company:</strong> HEVILE AGENCIAMENTO DE CARGAS</td>
+            <td><strong>Created by:</strong> {{ shipper }} On: (Data atual)</td>
+        </tr>
+    </table>
+    
+    <table class="si-table">
+        <tr>
+            <th style="width:25%;">Shipper</th><th style="width:25%;">Forwarder</th>
+            <th style="width:25%;">Carrier</th><th style="width:25%;">INTTRA SI Number</th>
+        </tr>
+        <tr>
+            <td class="data-value">{{ shipper }}</td>
+            <td class="data-value">(Seus dados de Forwarder)</td>
+            <td class="data-value">CMA CGM<br><strong>Carrier Booking Number:</strong><br>{{ booking_no }}<br><strong>RUC Number:</strong><br>{{ ruc_number }}<br><strong>DU-E Number:</strong><br>{{ duc_number }}</td>
+            <td class="data-value">(Seus dados de SI)</td>
+        </tr>
+    </table>
+    <table class="si-table">
+        <tr><th>Consignee</th><th>Notify Party</th></tr>
+        <tr>
+            <td class="data-value" style="width:50%;">{{ consignee }}</td>
+            <td class="data-value" style="width:50%;">{{ notify_party }}</td>
+        </tr>
+    </table>
+    <table class="si-table">
+        <tr>
+            <th>Move Type <br><span class="sub-header">Port Ramp,CY/CFS to Port Ramp.CY/CFS</span></th>
+            <th>Shipment Type <br><span class="sub-header">FCL (Full Container Load)</span></th>
+            <th>Vessel, Voyage <br><span class="sub-header">{{ vessel }}, {{ voyage }}</span></th>
+        </tr>
+    </table>
+    <table class="si-table">
+        <tr>
+            <th style="width:25%;">Origin</th><th style="width:25%;">Port of Load</th>
+            <th style="width:25%;">Port of Discharge</th><th style="width:25%;">Destination</th>
+        </tr>
+        <tr>
+            <td class="data-value"></td>
+            <td class="data-value"><strong>BRAZIL</strong><br>{{ port_of_loading }}</td>
+            <td class="data-value"><strong>NETHERLANDS</strong><br>{{ port_of_discharge }}</td>
+            <td class="data-value"></td>
+        </tr>
+    </table>
+
+    <h2>Particulars</h2>
+    <table class="si-table">
+        <tr>
+            <th style="width:20%;">Marks & Numbers</th>
+            <th style="width:10%;">Package Count/Type</th>
+            <th style="width:45%;">Cargo Description</th>
+            <th style="width:12%;">Cargo Gross Weight</th>
+            <th style="width:13%;">Cargo Gross Volume</th>
+        </tr>
+        <tr>
+            <td class="data-value">{{ marks_and_number }}</td>
+            <td class="data-value">{{ package_count }}</td>
+            <td class="data-value">
+                01X40'HC CONTAINER CONTAINING:<br>
+                {{ package_count }} PACKAGES WITH:<br>
+                {{ cargo_description }}
+                <br><br>
+                FATURA: {{ export_references }}
+                <br>
+                WOODEN PACKAGE USED: {{ wood_declaration }}
+                <br>
+                NCM CODE(S): {{ ncm_codes }}
+            </td>
+            <td class="data-value">{{ gross_weight }} Kgs</td>
+            <td class="data-value">{{ measurement_cbm }} Cbm</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+    <table class="si-table">
+        <tr>
+            <th>Container <br><span class="data-value">{{ container_no }}</span></th>
+            <th>Container Type <br><span class="data-value">40 High Cube (4560)</span></th>
+            <th>Seal Numbers <br><span class="data-value">{{ seal_no }}</span></th>
+            <th>Container Tare Weight <br><span class="data-value">{{ container_tare_weight }} Kgs</span></th>
+        </tr>
+    </table>
+
+    <h2>Control Totals</h2>
+    <table class="si-table">
+        <tr>
+            <th>Total Number of Containers</th><th>Total Number of Packages</th>
+            <th>Total Shipment Weight</th><th>Total Shipment Volume</th>
+        </tr>
+        <tr>
+            <td class="data-value">1</td>
+            <td class="data-value">{{ package_count }}</td>
+            <td class="data-value">{{ gross_weight }} Kgs</td>
+            <td class="data-value">{{ measurement_cbm }} Cbm</td>
+        </tr>
+    </table>
+    
+    <h2>Customs Compliance</h2>
+    <table class="si-table">
+        <tr>
+            <th style="width:50%;">Seller</th>
+            <th style="width:50%;">Buyer</th>
+        </tr>
+        <tr>
+            <td class="data-value">{{ shipper }}</td>
+            <td class="data-value">{{ consignee }}</td>
+        </tr>
+    </table>
+
+
+    <div class="page-break"></div>
+    <table class="si-table">
+        <tr>
+            <th>B/L Release Office<br><span class="data-value">{{ port_of_discharge }}</span></th>
+            <th>Requested Date of Issue<br><span class="data-value">(Data atual)</span></th>
+            <th>Number of B/Ls Original<br><span class="data-value">{{ signed_bl_count }}</span></th>
+        </tr>
+    </table>
+
+    <h2>Freight Charges</h2>
+    <table class="si-table">
+        <tr>
+            <th style="width:25%;">Charge Type</th><th style="width:25%;">Freight Term</th>
+            <th style="width:25%;">Payer</th><th style="width:25%;">Payment Location</th>
+        </tr>
+        <tr>
+            <td>Basic Freight:</td><td>Collect</td><td>Consignee</td><td>{{ port_of_discharge }}</td>
+        </tr>
+        <tr>
+            <td>Origin Port Charges:</td><td>Prepaid</td><td>Forwarder</td><td>{{ port_of_loading }}</td>
+        </tr>
+        <tr>
+            <td>Destination Port Charges:</td><td>Collect</td><td>Consignee</td><td>{{ port_of_discharge }}</td>
+        </tr>
+    </table>
+
+    <h2>Clauses / Comments</h2>
+    <table class="si-table">
+        <tr>
+            <td class="data-value">
+                FREIGHT COLLECT<br>
+                FREIGHT AS AGREED<br>
+                BL EXPRESS RELEASE/SEAWAYBILL<br>
+                Local taxes will be paid by Hevile - CNPJ 022554860001-34 (Forwarder in the process)
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
