@@ -11,10 +11,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.drawing.image import Image
 
 app = Flask(__name__)
-# --- ALTERAÇÃO IMPORTANTE AQUI ---
-# Adiciona a URL do seu site Netlify à lista de permissões do CORS.
-CORS(app)
-# --- FIM DA ALTERAÇÃO ---
+CORS(app, resources={r"/api/*": {"origins": "https://exportacaohevile.netlify.app"}})
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -127,11 +124,18 @@ def handle_form():
     sheet.merge_cells('J19:M21')
 
     sheet.merge_cells('J22:M29')
+    # --- SEÇÃO DA LOGO ---
+    # Este bloco tenta encontrar e adicionar o arquivo 'logo.png'.
+    # Para que funcione no Render, o arquivo 'logo.png' DEVE estar na mesma pasta que este 'app.py'
+    # e ter sido enviado para o GitHub.
     try:
         logo_path = os.path.join(BASE_DIR, 'logo.png'); img = Image(logo_path)
         img.height = 112; img.width = 210
         sheet.add_image(img, 'J23')
-    except: pass
+    except Exception as e:
+        # Adicionamos um print para vermos o erro nos logs do Render, se acontecer
+        print(f"Erro ao adicionar a logo: {e}")
+        pass
     
     # -- Demais seções --
     style_and_merge('A24:C24', "PRE-CARRIAGE BY", brand_orange_fill)
