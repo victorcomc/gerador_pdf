@@ -13,7 +13,7 @@ from openpyxl.drawing.image import Image
 app = Flask(__name__)
 # --- ALTERAÇÃO IMPORTANTE AQUI ---
 # Adiciona a URL do seu site Netlify à lista de permissões do CORS.
-CORS(app, resources={r"/api/*": {"origins": "https://exportacaohevile.netlify.app"}})
+CORS(app)
 # --- FIM DA ALTERAÇÃO ---
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
