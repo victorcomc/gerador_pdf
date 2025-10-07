@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM LARGURA AJUSTADA PARA A4
+# backend/app.py - VERSÃO COM CÁLCULO DE TOTAIS DOS CONTÊINERES
 
 from flask import Flask, request, send_file
 from flask_cors import CORS
@@ -118,7 +118,7 @@ def handle_form():
     sheet.merge_cells('J17:M18')
 
     cell_address = sheet['J19']
-    cell_address.value = "AVENIDA ENGENHEiro DOMINGOS\nFERREIRA, 4661 SL 403/406\nBOA VIAGEM, RECIFE - PE"
+    cell_address.value = "AVENIDA ENGENHEIRO DOMINGOS\nFERREIRA, 4661 SL 403/406\nBOA VIAGEM, RECIFE - PE"
     cell_address.font = default_font
     cell_address.alignment = align_center
     sheet.merge_cells('J19:M21')
@@ -149,29 +149,101 @@ def handle_form():
     style_and_merge('A30:M30', "Wooden Package", brand_orange_fill)
     wood_decl = data.get('woodDeclaration'); sheet['A31'].value = f"({ 'X' if wood_decl == 'Not Applicable' else ' ' }) Not Applicable  ({ 'X' if wood_decl == 'Processed' else ' ' }) Processed  ({ 'X' if wood_decl == 'Treated / Certified' else ' ' }) Treated / Certified  ({ 'X' if wood_decl == 'Not Treated / Not Certified' else ' ' }) Not Treated / Not Certified"; sheet['A31'].alignment = align_center; sheet.merge_cells('A31:M31')
     
-    headers_carga = [('A32:C32', "MARKS AND NUMBER"), ('D32', "QUANTITY"), ('E32:I32', "DESCRIPTION OF GOODS..."), ('J32:K32', "TOTAL GROSS WEIGHT (KGS)"), ('L32:M32', "TOTAL MEASUREMENT (CBM)")]
+    headers_carga = [('A32:B32', "MARKS AND NUMBER"), ('C32:D32', "QUANTITY"), ('E32:H32', "DESCRIPTION OF GOODS (WITH TOTAL NET WEIGHT)"), ('I32:K32', "TOTAL GROSS WEIGHT (KGS)"), ('L32:M32', "TOTAL MEASUREMENT (CBM)")]
     for r, v in headers_carga: style_and_merge(r, v, brand_blue_fill, font=white_font)
 
+    # --- INÍCIO DA ALTERAÇÃO: CÁLCULO DOS TOTAIS ---
+    # Calcula os totais somando os valores de cada contêiner
+    total_package_count = 0
+    total_gross_weight = 0.0
+    total_measurement_cbm = 0.0
+
+    containers_list = data.get('containers', [])
+    for container in containers_list:
+        try:
+            total_package_count += int(container.get('packageCount', 0))
+        except (ValueError, TypeError):
+            pass  # Ignora se o valor não for um número inteiro válido
+        try:
+            total_gross_weight += float(container.get('grossWeight', 0))
+        except (ValueError, TypeError):
+            pass  # Ignora se o valor não for um número float válido
+        try:
+            total_measurement_cbm += float(container.get('measurementCBM', 0))
+        except (ValueError, TypeError):
+            pass  # Ignora se o valor não for um número float válido
+            
+    # --- FIM DA ALTERAÇÃO: CÁLCULO DOS TOTAIS ---
+
     sheet['A33'].value = data.get('marksAndNumber'); sheet['A33'].alignment = align_left_top; sheet.merge_cells('A33:B47')
-    sheet['C33'].value = data.get('packageCount'); sheet['C33'].alignment = align_left_top; sheet.merge_cells('C33:D47')
     
-    desc_content = (f"DUE: {data.get('ducNumber', '')}\nNCM/HS CODE: {data.get('ncmCodes', '')}\nINVOICE: {data.get('exportReferences', '')}\n" + (f"TEMPERATURE: {data.get('temperature', '')}\n" if data.get('temperature') else "") + f"NET WEIGHT: {data.get('netWeight', '')} KGS\n\n{data.get('cargoDescription', '')}")
+    # --- ALTERAÇÃO: USA OS TOTAIS CALCULADOS ---
+    sheet['C33'].value = total_package_count
+    sheet['C33'].alignment = align_left_top
+    sheet.merge_cells('C33:D47')
+    
+    desc_content = (f"{data.get('cargoDescription', '')}\n\nDUE: {data.get('ducNumber', '')}\nNCM/HS CODE: {data.get('ncmCodes', '')}\nINVOICE: {data.get('exportReferences', '')}\n" + (f"TEMPERATURE: {data.get('temperature', '')}\n" if data.get('temperature') else "") + f"NET WEIGHT: {data.get('netWeight', '')} KGS")
     sheet['E33'].value = desc_content; sheet['E33'].alignment = align_left_top; sheet.merge_cells('E33:H47')
     
-    sheet['I33'].value = data.get('grossWeight'); sheet['I33'].alignment = align_left_top; sheet.merge_cells('I33:K47')
-    sheet['L33'].value = data.get('measurementCBM'); sheet['L33'].alignment = align_left_top; sheet.merge_cells('L33:M47')
+    # --- ALTERAÇÃO: USA OS TOTAIS CALCULADOS ---
+    sheet['I33'].value = total_gross_weight
+    sheet['I33'].alignment = align_left_top
+    sheet.merge_cells('I33:K47')
+    
+    sheet['L33'].value = total_measurement_cbm
+    sheet['L33'].alignment = align_left_top
+    sheet.merge_cells('L33:M47')
+    # --- FIM DAS ALTERAÇÕES ---
 
+    # --- INÍCIO DA SEÇÃO DE MÚLTIPLOS CONTÊINERES ---
+    
+    # Desenha os cabeçalhos da tabela de contêineres
     container_headers = [('A48:D48', "CONTAINER Nº"), ('E48:F48', "SEAL"), ('G48', "TARA"), ('H48', "QTY. PACK"), ('I48:J48', "PACK TYPE"), ('K48:L48', "G.WEIGHT"), ('M48', "M/3")]
     for r, v in container_headers: style_and_merge(r, v, brand_blue_fill, font=white_font)
-    sheet['A49'].value = data.get('containerNo'); sheet['A49'].alignment = align_center; sheet.merge_cells('A49:D49')
-    sheet['E49'].value = f"ARM: {data.get('sealArmador', '')}\nSHP: {data.get('sealShipper', '')}"; sheet['E49'].alignment = align_center; sheet.merge_cells('E49:F49')
-    sheet['G49'].value = data.get('containerTareWeight'); sheet['G49'].alignment = align_center
-    sheet['H49'].value = data.get('packageCount'); sheet['H49'].alignment = align_center
-    sheet['I49'].value = data.get('packType'); sheet['I49'].alignment = align_center; sheet.merge_cells('I49:J49')
-    sheet['K49'].value = data.get('grossWeight'); sheet['K49'].alignment = align_center; sheet.merge_cells('K49:L49')
-    sheet['M49'].value = data.get('measurementCBM'); sheet['M49'].alignment = align_center
-    for row_idx in range(50, 54):
-        for col_idx in range(1, 14): sheet.cell(row=row_idx, column=col_idx).border = dotted_border
+
+    # Pega a lista de contêineres do JSON. Se não existir, usa uma lista vazia para não dar erro.
+    containers_data = data.get('containers', [])
+    start_row = 49  # A primeira linha de dados de contêiner
+
+    # Itera sobre a lista de contêineres e preenche uma linha para cada um
+    for i, container in enumerate(containers_data):
+        current_row = start_row + i
+        
+        # Limite de segurança para não escrever por cima do rodapé (que começa na linha 70)
+        if current_row >= 70:
+            break
+            
+        # Preenche os dados do contêiner na linha correspondente
+        sheet.cell(row=current_row, column=1).value = container.get('containerNo')
+        sheet.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
+        
+        sheet.cell(row=current_row, column=5).value = f"ARM: {container.get('sealArmador', '')}\nSHP: {container.get('sealShipper', '')}"
+        sheet.merge_cells(start_row=current_row, start_column=5, end_row=current_row, end_column=6)
+        
+        sheet.cell(row=current_row, column=7).value = container.get('containerTareWeight')
+        sheet.cell(row=current_row, column=8).value = container.get('packageCount')
+        
+        sheet.cell(row=current_row, column=9).value = container.get('packType')
+        sheet.merge_cells(start_row=current_row, start_column=9, end_row=current_row, end_column=10)
+        
+        sheet.cell(row=current_row, column=11).value = container.get('grossWeight')
+        sheet.merge_cells(start_row=current_row, start_column=11, end_row=current_row, end_column=12)
+        
+        sheet.cell(row=current_row, column=13).value = container.get('measurementCBM')
+
+        # Aplica o alinhamento central a todas as células da linha do contêiner
+        for col_idx in range(1, 14):
+             sheet.cell(row=current_row, column=col_idx).alignment = align_center
+
+    # Preenche as linhas vazias restantes com bordas pontilhadas
+    # Começa a preencher a partir da próxima linha vazia depois do último contêiner
+    next_empty_row = start_row + len(containers_data)
+    # O rodapé começa na linha 70, então preenchemos até a linha 69
+    for row_idx in range(next_empty_row, 70): 
+        for col_idx in range(1, 14):
+            sheet.cell(row=row_idx, column=col_idx).border = dotted_border
+
+    # --- FIM DA SEÇÃO DE MÚLTIPLOS CONTÊINERES ---
 
     # -- Seção 8: Rodapé --
     remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER I , APPARENT GOOD ORDER AND CONDITION (UNLESS OTHERWISE NOTED HEREIN) THE TOTAL NUMBER OR QUANTITY OF CONTAINERS OF OTHER PACKAGES OR UNITS INDICATED IN THE BOX APPOSITED\" QUANTITY / DESCRIPTION OF GOODS\" FOR CARRIAGE SUBJECT TO ALL THE TERMS (INCLUING THE TERMS ON THE RESERVE HEREOF AND THE TERMS OF THE CARRIER'S APPLICABLE TARIFF) FORM THE PLACE OF RECEIPT OR THE PORT LOADING, WHICHEVER IS APPLICABLE , TO THE PORT OF DISCHARGE OR THE PLACE OF DELIVERY OWHICHEVER IS APPLICABLE. ONE ORIGINAL BILL OF LADING THE MUST BE MUST BE SURRENDERED, DULY ENDORSED IN EXCHANGE FOR THE GOODS. IN ACCEPTING THIS BILL OF LACING THE MERCHANT EXPRESSLY ACCEPTS AND AGREES TO ALL TERMS AND CONDITIONS WHETHER PRINTED, STAMPED OR WRITTEN, OR OTHERWISE INCORPORATED, NOTWITHSTANDING THE NON-SIGNING OF THIS BILL OF LADING BY THE MERCHANT."
