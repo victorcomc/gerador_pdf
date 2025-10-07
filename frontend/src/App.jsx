@@ -110,7 +110,7 @@ function App() {
       if (noMarks) dataToSend.marksAndNumber = '';
 
       try {
-        const response = await fetch('http://127.0.0.1:5000/api/generate-file', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend), });
+        const response = await fetch('[https://gerador-excel-hevile.onrender.com/api/generate-file](https://gerador-excel-hevile.onrender.com/api/generate-file)', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend), });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
