@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM CÁLCULO DE TOTAIS DOS CONTÊINERES
+# backend/app.py - VERSÃO COM CORREÇÃO DE CORS PARA PRODUÇÃO
 
 from flask import Flask, request, send_file
 from flask_cors import CORS
@@ -11,7 +11,10 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.drawing.image import Image
 
 app = Flask(__name__)
-CORS(app)
+# --- ALTERAÇÃO IMPORTANTE AQUI ---
+# Adiciona a URL do seu site Netlify à lista de permissões do CORS.
+CORS(app, resources={r"/api/*": {"origins": "https://exportacaohevile.netlify.app"}})
+# --- FIM DA ALTERAÇÃO ---
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -118,7 +121,7 @@ def handle_form():
     sheet.merge_cells('J17:M18')
 
     cell_address = sheet['J19']
-    cell_address.value = "AVENIDA ENGENHEIRO DOMINGOS\nFERREIRA, 4661 SL 403/406\nBOA VIAGEM, RECIFE - PE"
+    cell_address.value = "AVENIDA ENGENHEiro DOMINGOS\nFERREIRA, 4661 SL 403/406\nBOA VIAGEM, RECIFE - PE"
     cell_address.font = default_font
     cell_address.alignment = align_center
     sheet.merge_cells('J19:M21')
@@ -152,8 +155,7 @@ def handle_form():
     headers_carga = [('A32:B32', "MARKS AND NUMBER"), ('C32:D32', "QUANTITY"), ('E32:H32', "DESCRIPTION OF GOODS (WITH TOTAL NET WEIGHT)"), ('I32:K32', "TOTAL GROSS WEIGHT (KGS)"), ('L32:M32', "TOTAL MEASUREMENT (CBM)")]
     for r, v in headers_carga: style_and_merge(r, v, brand_blue_fill, font=white_font)
 
-    # --- INÍCIO DA ALTERAÇÃO: CÁLCULO DOS TOTAIS ---
-    # Calcula os totais somando os valores de cada contêiner
+    # --- CÁLCULO DOS TOTAIS ---
     total_package_count = 0
     total_gross_weight = 0.0
     total_measurement_cbm = 0.0
@@ -163,21 +165,18 @@ def handle_form():
         try:
             total_package_count += int(container.get('packageCount', 0))
         except (ValueError, TypeError):
-            pass  # Ignora se o valor não for um número inteiro válido
+            pass
         try:
             total_gross_weight += float(container.get('grossWeight', 0))
         except (ValueError, TypeError):
-            pass  # Ignora se o valor não for um número float válido
+            pass
         try:
             total_measurement_cbm += float(container.get('measurementCBM', 0))
         except (ValueError, TypeError):
-            pass  # Ignora se o valor não for um número float válido
+            pass
             
-    # --- FIM DA ALTERAÇÃO: CÁLCULO DOS TOTAIS ---
-
     sheet['A33'].value = data.get('marksAndNumber'); sheet['A33'].alignment = align_left_top; sheet.merge_cells('A33:B47')
     
-    # --- ALTERAÇÃO: USA OS TOTAIS CALCULADOS ---
     sheet['C33'].value = total_package_count
     sheet['C33'].alignment = align_left_top
     sheet.merge_cells('C33:D47')
@@ -185,7 +184,6 @@ def handle_form():
     desc_content = (f"{data.get('cargoDescription', '')}\n\nDUE: {data.get('ducNumber', '')}\nNCM/HS CODE: {data.get('ncmCodes', '')}\nINVOICE: {data.get('exportReferences', '')}\n" + (f"TEMPERATURE: {data.get('temperature', '')}\n" if data.get('temperature') else "") + f"NET WEIGHT: {data.get('netWeight', '')} KGS")
     sheet['E33'].value = desc_content; sheet['E33'].alignment = align_left_top; sheet.merge_cells('E33:H47')
     
-    # --- ALTERAÇÃO: USA OS TOTAIS CALCULADOS ---
     sheet['I33'].value = total_gross_weight
     sheet['I33'].alignment = align_left_top
     sheet.merge_cells('I33:K47')
@@ -193,27 +191,20 @@ def handle_form():
     sheet['L33'].value = total_measurement_cbm
     sheet['L33'].alignment = align_left_top
     sheet.merge_cells('L33:M47')
-    # --- FIM DAS ALTERAÇÕES ---
 
-    # --- INÍCIO DA SEÇÃO DE MÚLTIPLOS CONTÊINERES ---
-    
-    # Desenha os cabeçalhos da tabela de contêineres
+    # --- SEÇÃO DE MÚLTIPLOS CONTÊINERES ---
     container_headers = [('A48:D48', "CONTAINER Nº"), ('E48:F48', "SEAL"), ('G48', "TARA"), ('H48', "QTY. PACK"), ('I48:J48', "PACK TYPE"), ('K48:L48', "G.WEIGHT"), ('M48', "M/3")]
     for r, v in container_headers: style_and_merge(r, v, brand_blue_fill, font=white_font)
 
-    # Pega a lista de contêineres do JSON. Se não existir, usa uma lista vazia para não dar erro.
     containers_data = data.get('containers', [])
-    start_row = 49  # A primeira linha de dados de contêiner
+    start_row = 49
 
-    # Itera sobre a lista de contêineres e preenche uma linha para cada um
     for i, container in enumerate(containers_data):
         current_row = start_row + i
         
-        # Limite de segurança para não escrever por cima do rodapé (que começa na linha 70)
         if current_row >= 70:
             break
             
-        # Preenche os dados do contêiner na linha correspondente
         sheet.cell(row=current_row, column=1).value = container.get('containerNo')
         sheet.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
         
@@ -231,19 +222,13 @@ def handle_form():
         
         sheet.cell(row=current_row, column=13).value = container.get('measurementCBM')
 
-        # Aplica o alinhamento central a todas as células da linha do contêiner
         for col_idx in range(1, 14):
              sheet.cell(row=current_row, column=col_idx).alignment = align_center
 
-    # Preenche as linhas vazias restantes com bordas pontilhadas
-    # Começa a preencher a partir da próxima linha vazia depois do último contêiner
     next_empty_row = start_row + len(containers_data)
-    # O rodapé começa na linha 70, então preenchemos até a linha 69
     for row_idx in range(next_empty_row, 70): 
         for col_idx in range(1, 14):
             sheet.cell(row=row_idx, column=col_idx).border = dotted_border
-
-    # --- FIM DA SEÇÃO DE MÚLTIPLOS CONTÊINERES ---
 
     # -- Seção 8: Rodapé --
     remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER I , APPARENT GOOD ORDER AND CONDITION (UNLESS OTHERWISE NOTED HEREIN) THE TOTAL NUMBER OR QUANTITY OF CONTAINERS OF OTHER PACKAGES OR UNITS INDICATED IN THE BOX APPOSITED\" QUANTITY / DESCRIPTION OF GOODS\" FOR CARRIAGE SUBJECT TO ALL THE TERMS (INCLUING THE TERMS ON THE RESERVE HEREOF AND THE TERMS OF THE CARRIER'S APPLICABLE TARIFF) FORM THE PLACE OF RECEIPT OR THE PORT LOADING, WHICHEVER IS APPLICABLE , TO THE PORT OF DISCHARGE OR THE PLACE OF DELIVERY OWHICHEVER IS APPLICABLE. ONE ORIGINAL BILL OF LADING THE MUST BE MUST BE SURRENDERED, DULY ENDORSED IN EXCHANGE FOR THE GOODS. IN ACCEPTING THIS BILL OF LACING THE MERCHANT EXPRESSLY ACCEPTS AND AGREES TO ALL TERMS AND CONDITIONS WHETHER PRINTED, STAMPED OR WRITTEN, OR OTHERWISE INCORPORATED, NOTWITHSTANDING THE NON-SIGNING OF THIS BILL OF LADING BY THE MERCHANT."
