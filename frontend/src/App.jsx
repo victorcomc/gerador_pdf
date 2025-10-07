@@ -110,7 +110,10 @@ function App() {
       if (noMarks) dataToSend.marksAndNumber = '';
 
       try {
-        const response = await fetch('[https://gerador-excel-exportacao.onrender.com](https://gerador-excel-exportacao.onrender.com)', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend), });
+
+        const backendUrl = 'https://gerador-excel-exportacao.onrender.com';
+
+        const response = await fetch(backendUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataToSend), });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
