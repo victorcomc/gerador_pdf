@@ -18,7 +18,7 @@ from flask_jwt_extended import JWTManager
 app = Flask(__name__)
 # Sua configuração de CORS para produção
 allowed_origins = [
-    "https://gerador-excel-exportacao.onrender.com" # Seu site de produção
+    "https://exportacaohevile.netlify.app" # Seu site de produção
     "http://localhost:3000"               # Seu site de desenvolvimento
 ]
 CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
