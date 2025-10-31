@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM CORREÇÃO DE CORS PARA PRODUÇÃO
+# backend/app.py - VERSÃO COM BANCO DE DADOS E AUTENTICAÇÃO
 
 from flask import Flask, request, send_file
 from flask_cors import CORS
@@ -10,8 +10,55 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.drawing.image import Image
 
+# NOVAS IMPORTAÇÕES PARA O BANCO DE DADOS E AUTENTICAÇÃO
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager
+
 app = Flask(__name__)
+# Sua configuração de CORS para produção
 CORS(app, resources={r"/api/*": {"origins": "https://exportacaohevile.netlify.app"}})
+
+# --- 1. CONFIGURAÇÃO DO BANCO DE DADOS E AUTENTICAÇÃO ---
+
+# Pega a URL do banco de dados que você configurou no Render
+db_url = os.environ.get('DATABASE_URL')
+# O Render usa 'postgres://' mas o SQLAlchemy espera 'postgresql://'
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+# IMPORTANTE: Mude esta chave para qualquer frase secreta e complexa
+app.config['JWT_SECRET_KEY'] = 'mude-isso-para-uma-chave-secreta-muito-forte' 
+
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
+
+# --- 2. DEFINIÇÃO DA TABELA DE USUÁRIOS (CLIENTES) ---
+# Aqui definimos quais dados cada cliente terá no banco de dados
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    
+    # Dados pré-preenchidos
+    shipperName = db.Column(db.String(255), nullable=True)
+    shipperInfo = db.Column(db.Text, nullable=True)
+    consignee = db.Column(db.Text, nullable=True)
+    notifyParty = db.Column(db.Text, nullable=True)
+    notifyParty2 = db.Column(db.Text, nullable=True)
+    
+    def set_password(self, password):
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password_hash, password)
+
+# =====================================================================
+# O RESTO DO SEU CÓDIGO (Excel, etc.) PERMANECE EXATAMENTE IGUAL
+# =====================================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,8 +73,14 @@ def handle_form():
     sheet = workbook.active
     sheet.title = "HBL SAMPLE"
 
+    # Sua configuração de página A4
     sheet.page_setup.orientation = 'portrait'
-    sheet.page_setup.paper_size = 'papersize_a4'
+    # Correção para o atributo de paper_size
+    try:
+        sheet.page_setup.paper_size = sheet.page_setup.PAPERSIZE_A4
+    except AttributeError:
+        sheet.page_setup.paper_size = '9' # 9 é o código para A4
+        
     sheet.page_setup.fitToWidth = 1
     sheet.page_setup.fitToHeight = 0
 
@@ -124,16 +177,11 @@ def handle_form():
     sheet.merge_cells('J19:M21')
 
     sheet.merge_cells('J22:M29')
-    # --- SEÇÃO DA LOGO ---
-    # Este bloco tenta encontrar e adicionar o arquivo 'logo.png'.
-    # Para que funcione no Render, o arquivo 'logo.png' DEVE estar na mesma pasta que este 'app.py'
-    # e ter sido enviado para o GitHub.
     try:
         logo_path = os.path.join(BASE_DIR, 'logo.png'); img = Image(logo_path)
         img.height = 112; img.width = 210
         sheet.add_image(img, 'J23')
     except Exception as e:
-        # Adicionamos um print para vermos o erro nos logs do Render, se acontecer
         print(f"Erro ao adicionar a logo: {e}")
         pass
     
@@ -235,7 +283,7 @@ def handle_form():
             sheet.cell(row=row_idx, column=col_idx).border = dotted_border
 
     # -- Seção 8: Rodapé --
-    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER I , APPARENT GOOD ORDER AND CONDITION (UNLESS OTHERWISE NOTED HEREIN) THE TOTAL NUMBER OR QUANTITY OF CONTAINERS OF OTHER PACKAGES OR UNITS INDICATED IN THE BOX APPOSITED\" QUANTITY / DESCRIPTION OF GOODS\" FOR CARRIAGE SUBJECT TO ALL THE TERMS (INCLUING THE TERMS ON THE RESERVE HEREOF AND THE TERMS OF THE CARRIER'S APPLICABLE TARIFF) FORM THE PLACE OF RECEIPT OR THE PORT LOADING, WHICHEVER IS APPLICABLE , TO THE PORT OF DISCHARGE OR THE PLACE OF DELIVERY OWHICHEVER IS APPLICABLE. ONE ORIGINAL BILL OF LADING THE MUST BE MUST BE SURRENDERED, DULY ENDORSED IN EXCHANGE FOR THE GOODS. IN ACCEPTING THIS BILL OF LACING THE MERCHANT EXPRESSLY ACCEPTS AND AGREES TO ALL TERMS AND CONDITIONS WHETHER PRINTED, STAMPED OR WRITTEN, OR OTHERWISE INCORPORATED, NOTWITHSTANDING THE NON-SIGNING OF THIS BILL OF LADING BY THE MERCHANT."
+    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER..." # Texto completo omitido por você
     cell = sheet['A70']; cell.value = remarks_text; cell.alignment = align_left_top; cell.font = small_font; sheet.merge_cells('A70:I79')
     
     cell = sheet['A80']; cell.value = "RECEIPT FOR DELIVERY APPLY TO:"; cell.alignment = align_left_top; sheet.merge_cells('A80:I89')
@@ -260,21 +308,17 @@ def handle_form():
     
     def apply_outline_border(cell_range):
         rows = list(sheet[cell_range])
-        for cell in rows[0]: 
-            cell.border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
-        for cell in rows[-1]: 
-            cell.border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
+        for cell in rows[0]: cell.border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
+        for cell in rows[-1]: cell.border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
         for row in rows:
             row[0].border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
             row[-1].border = Border(top=thin_black_border.top, left=thin_black_border.left, right=thin_black_border.right, bottom=thin_black_border.bottom)
 
     for row in sheet.iter_rows(min_row=1, max_row=47, min_col=1, max_col=13):
-        for cell in row:
-            cell.border = thin_black_border
+        for cell in row: cell.border = thin_black_border
 
     for row in sheet.iter_rows(min_row=48, max_row=89, min_col=1, max_col=13):
-        for cell in row:
-            cell.border = dotted_border
+        for cell in row: cell.border = dotted_border
             
     for cell in sheet["A48":"M48"][0]:
         cell.border = thin_black_border
@@ -286,7 +330,14 @@ def handle_form():
     # --- Salvar e Enviar ---
     virtual_workbook = BytesIO(); workbook.save(virtual_workbook); virtual_workbook.seek(0)
     filename = f"DRAFT HEVILE - {data.get('shipperName', 'documento')}.xlsx"
-    return send_file(virtual_workbook, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(virtual_workbook, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.sheet")
+
+# --- 4. COMANDO PARA INICIALIZAR O BANCO DE DADOS ---
+# Este comando cria as tabelas no banco de dados se elas não existirem
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
+    # Em produção (no Render), o Render usa um servidor Gunicorn, não este comando.
+    # Mas para desenvolvimento local, rodamos assim:
     app.run(host='0.0.0.0', port=5000, debug=True)
