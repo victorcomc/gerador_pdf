@@ -1,6 +1,6 @@
 # backend/app.py - VERSÃO COM BANCO DE DADOS E AUTENTICAÇÃO
 
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 from io import BytesIO
 from datetime import datetime
@@ -13,13 +13,14 @@ from openpyxl.drawing.image import Image
 # NOVAS IMPORTAÇÕES PARA O BANCO DE DADOS E AUTENTICAÇÃO
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 app = Flask(__name__)
-# Sua configuração de CORS para produção
+
+# Sua configuração de CORS para produção (corrigi a vírgula faltante)
 allowed_origins = [
-    "https://exportacaohevile.netlify.app" # Seu site de produção
-    "http://localhost:3000"               # Seu site de desenvolvimento
+    "https://exportacaohevile.netlify.app", # Seu site de produção
+    "http://localhost:3000"                # Seu site de desenvolvimento
 ]
 CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 # ==================================
@@ -32,16 +33,14 @@ if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-# IMPORTANTE: Mude esta chave para qualquer frase secreta e complexa
-app.config['JWT_SECRET_KEY'] = 'mude-isso-para-uma-chave-secreta-muito-forte' 
+# IMPORTANTE: Mude esta chave no Render para algo secreto
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
 # --- 2. DEFINIÇÃO DA TABELA DE USUÁRIOS (CLIENTES) ---
-# Aqui definimos quais dados cada cliente terá no banco de dados
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -60,26 +59,88 @@ class User(db.Model):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
 
-# =====================================================================
-# O RESTO DO SEU CÓDIGO (Excel, etc.) PERMANECE EXATAMENTE IGUAL
-# =====================================================================
+# ==================================
+# --- 3. NOVAS ROTAS DE AUTENTICAÇÃO ---
 
+@app.route('/api/register', methods=['POST'])
+def register():
+    # Esta é uma rota de ajuda para você criar usuários.
+    # Você pode usar o Postman ou Insomnia para enviar um JSON para esta rota.
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"msg": "Usuário e senha são obrigatórios"}), 400
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({"msg": "Usuário já existe"}), 400
+
+    new_user = User(
+        username=username,
+        shipperName=data.get('shipperName', ''),
+        shipperInfo=data.get('shipperInfo', ''),
+        consignee=data.get('consignee', ''),
+        notifyParty=data.get('notifyParty', ''),
+        notifyParty2=data.get('notifyParty2', '')
+    )
+    new_user.set_password(password)
+    
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({"msg": "Usuário registrado com sucesso"}), 201
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    
+    if user and user.check_password(password):
+        access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=access_token)
+    
+    return jsonify({"msg": "Usuário ou senha inválidos"}), 401
+
+@app.route('/api/get-client-data', methods=['GET'])
+@jwt_required()
+def get_client_data():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({"msg": "Usuário não encontrado"}), 404
+        
+    return jsonify({
+        "shipperName": user.shipperName,
+        "shipperInfo": user.shipperInfo,
+        "consignee": user.consignee,
+        "notifyParty": user.notifyParty,
+        "notifyParty2": user.notifyParty2
+    })
+
+# =====================================================================
+# --- 4. ROTA EXISTENTE (AGORA PROTEGIDA) ---
+# =====================================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.route('/api/generate-file', methods=['POST'])
+@jwt_required() # <--- ADICIONADO: Protege a rota
 def handle_form():
+    # (O resto do seu código de geração de Excel permanece o mesmo)
     if not request.json:
         return {"error": "Missing JSON"}, 400
-
+    # ... (todo o seu código de openpyxl) ...
     data = request.json
     
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.title = "HBL SAMPLE"
 
-    # Sua configuração de página A4
     sheet.page_setup.orientation = 'portrait'
-    # Correção para o atributo de paper_size
     try:
         sheet.page_setup.paper_size = sheet.page_setup.PAPERSIZE_A4
     except AttributeError:
@@ -287,7 +348,7 @@ def handle_form():
             sheet.cell(row=row_idx, column=col_idx).border = dotted_border
 
     # -- Seção 8: Rodapé --
-    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER..." # Texto completo omitido por você
+    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER..." # Texto completo omitido por você (mantido)
     cell = sheet['A70']; cell.value = remarks_text; cell.alignment = align_left_top; cell.font = small_font; sheet.merge_cells('A70:I79')
     
     cell = sheet['A80']; cell.value = "RECEIPT FOR DELIVERY APPLY TO:"; cell.alignment = align_left_top; sheet.merge_cells('A80:I89')
@@ -334,14 +395,12 @@ def handle_form():
     # --- Salvar e Enviar ---
     virtual_workbook = BytesIO(); workbook.save(virtual_workbook); virtual_workbook.seek(0)
     filename = f"DRAFT HEVILE - {data.get('shipperName', 'documento')}.xlsx"
-    return send_file(virtual_workbook, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.sheet")
+    return send_file(virtual_workbook, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-# --- 4. COMANDO PARA INICIALIZAR O BANCO DE DADOS ---
-# Este comando cria as tabelas no banco de dados se elas não existirem
+# --- 5. COMANDO PARA INICIALIZAR O BANCO DE DADOS ---
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    # Em produção (no Render), o Render usa um servidor Gunicorn, não este comando.
-    # Mas para desenvolvimento local, rodamos assim:
     app.run(host='0.0.0.0', port=5000, debug=True)
+

@@ -1,0 +1,50 @@
+/* frontend/src/pages/LoginPage.css (ARQUIVO NOVO) */
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #4c748c;
+}
+
+.login-form {
+  background: #e7e7e7;
+  padding: 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  border: 0.7px solid #ac4802;
+  box-sizing: border-box;
+}
+
+.login-logo {
+  display: block;
+  margin: 0 auto 1.5rem auto;
+  width: 100px;
+  height: auto;
+}
+
+.login-form h2 {
+  text-align: center;
+  color: #4c748c;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; color: #606770; font-weight: bold; font-size: 0.9rem; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid #ccd0d5; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+.form-group input:focus { outline: none; border-color: #4c748c; box-shadow: 0 0 0 2px rgba(76, 116, 140, 0.5); }
+
+button { width: 100%; padding: 12px 20px; border: none; background-color: #4c748c; color: #f96b06; font-size: 1.1rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background-color 0.3s ease; margin-top: 1rem; }
+button:hover:not(:disabled) { background-color: #b94d00; color: #e7e7e7; }
+button:disabled { background-color: #4c748c; opacity: 0.6; cursor: not-allowed; }
+
+.error-message {
+  color: #d93025;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}

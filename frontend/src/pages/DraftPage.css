@@ -181,3 +181,21 @@ button:disabled { background-color: #4c748c; opacity: 0.6; cursor: not-allowed; 
   color: red;
   margin-left: 4px;
 }
+
+/* Adicione ao final de DraftPage.css */
+
+.logout-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #f0f0f0;
+  color: #4c748c;
+  border: 1px solid #4c748c;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.logout-button:hover {
+  background-color: #e0e0e0;
+}
