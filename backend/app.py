@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM CORREÇÃO DE INICIALIZAÇÃO DO DB
+# backend/app.py - VERSÃO COM "ESPIÃO" DE CABEÇALHOS
 
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
@@ -30,9 +30,29 @@ if db_url and db_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
+# --- CONFIGURAÇÃO JWT EXPLÍCITA (PARA DEBUG) ---
+# Diz ao JWT para procurar o token exatamente aqui
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
+app.config['JWT_HEADER_NAME'] = 'Authorization'
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+# --- FIM DA CONFIGURAÇÃO EXPLÍCITA ---
+
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
+
+# ==================================
+# --- O NOSSO "ESPIÃO" DE CABEÇALHOS ---
+@app.before_request
+def log_request_info():
+    # Esta função é executada ANTES de qualquer rota
+    # Vamos verificar apenas os pedidos que nos interessam
+    if request.path == '/api/get-client-data':
+        print("--- [DEBUG] CABEÇALHOS A CHEGAR EM /api/get-client-data ---")
+        # Imprime todos os cabeçalhos que o servidor está a ver
+        print(request.headers)
+        print("--- [DEBUG] FIM DOS CABEÇALHOS ---")
+# ==================================
 
 # --- 2. MODELO DE UTILIZADOR ---
 class User(db.Model):
@@ -51,12 +71,9 @@ class User(db.Model):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
 
-# ==================================
-# --- NOVA ROTA PARA CRIAR O BANCO (SÓ USAR UMA VEZ) ---
+# --- ROTA PARA CRIAR O BANCO (SÓ USAR UMA VEZ) ---
 @app.route('/api/init-db/<secret_key>', methods=['GET'])
 def init_db(secret_key):
-    # Proteja esta rota para que só você a possa aceder
-    # Mude "minha-chave-secreta" para algo seu
     if secret_key == "minha-chave-secreta-para-init": 
         try:
             with app.app_context():
@@ -66,9 +83,8 @@ def init_db(secret_key):
             return f"Erro ao criar tabelas: {e}", 500
     else:
         return "Não autorizado", 401
-# ==================================
 
-# --- ROTA DE DEBUG (AINDA PRESENTE) ---
+# --- ROTA DE DEBUG ---
 @app.route('/api/health', methods=['GET'])
 def health_check():
     jwt_key = os.environ.get('JWT_SECRET_KEY')
