@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM ROTA DE DEBUG /api/health
+# backend/app.py - VERSÃO COM CORREÇÃO DE INICIALIZAÇÃO DO DB
 
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
@@ -28,7 +28,6 @@ if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-# Lemos a chave secreta das variáveis de ambiente
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
 db = SQLAlchemy(app)
@@ -53,22 +52,32 @@ class User(db.Model):
         return bcrypt.check_password_hash(self.password_hash, password)
 
 # ==================================
-# --- ROTA DE DEBUG (NOVA) ---
+# --- NOVA ROTA PARA CRIAR O BANCO (SÓ USAR UMA VEZ) ---
+@app.route('/api/init-db/<secret_key>', methods=['GET'])
+def init_db(secret_key):
+    # Proteja esta rota para que só você a possa aceder
+    # Mude "minha-chave-secreta" para algo seu
+    if secret_key == "minha-chave-secreta-para-init": 
+        try:
+            with app.app_context():
+                db.create_all()
+            return "Tabelas do banco de dados criadas com sucesso!", 200
+        except Exception as e:
+            return f"Erro ao criar tabelas: {e}", 500
+    else:
+        return "Não autorizado", 401
+# ==================================
+
+# --- ROTA DE DEBUG (AINDA PRESENTE) ---
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    # Esta rota vai verificar se a variável de ambiente JWT_SECRET_KEY está a ser lida
     jwt_key = os.environ.get('JWT_SECRET_KEY')
     if jwt_key:
-        # Se encontrou a chave, imprime nos logs (para nós vermos)
         print("LOG DE SAÚDE: A variável JWT_SECRET_KEY está definida.")
-        # E retorna sucesso
         return jsonify(status="OK", message="Servidor a funcionar e chave JWT carregada."), 200
     else:
-        # Se não encontrou, imprime o erro nos logs
         print("LOG DE SAÚDE (ERRO): A variável JWT_SECRET_KEY NÃO FOI ENCONTRADA.")
-        # E retorna um erro
         return jsonify(status="ERRO", message="Variável de ambiente JWT_SECRET_KEY não está definida no servidor."), 500
-# ==================================
 
 # --- 3. ROTAS DE AUTENTICAÇÃO ---
 @app.route('/api/register', methods=['POST'])
@@ -312,9 +321,7 @@ def handle_form():
     filename = f"DRAFT HEVILE - {data.get('shipperName', 'documento')}.xlsx"
     return send_file(virtual_workbook, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-# --- 5. COMANDO PARA INICIALIZAR O BANCO DE DADOS ---
-with app.app_context():
-    db.create_all()
+# --- O db.create_all() FOI REMOVIDO DAQUI ---
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
