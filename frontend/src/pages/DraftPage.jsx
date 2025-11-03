@@ -1,8 +1,9 @@
 // frontend/src/pages/DraftPage.jsx (Múltiplos Contêineres + Autenticação)
+// VERSÃO SEM O BOTÃO "SAIR"
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './DraftPage.css'; // Assume que você criará este CSS
+import './DraftPage.css';
 import logo from '../assets/logo.png';
 
 // Estrutura de um único contêiner
@@ -116,10 +117,7 @@ function DraftPage() {
     setFormData(prev => ({ ...prev, containers: updatedContainers }));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    navigate('/login');
-  };
+  // --- FUNÇÃO handleLogout() REMOVIDA DAQUI ---
 
   const handleSubmit = async () => {
     // Validação dos campos principais
@@ -221,7 +219,7 @@ function DraftPage() {
       <img src={logo} alt="Logo Hevile" className="logo" />
       <h1>DRAFT HEVILE</h1>
       
-      <button onClick={handleLogout} className="logout-button">Sair</button>
+      {/* --- BOTÃO "SAIR" REMOVIDO DAQUI --- */}
 
       <form>
         <h2>1. Partes Envolvidas</h2>
