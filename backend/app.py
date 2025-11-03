@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM CORREÇÃO DEFINITIVA DE CSRF
+# backend/app.py - VERSÃO COM CORREÇÃO DE TIPO DE IDENTIDADE (int/str)
 
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
@@ -30,19 +30,14 @@ if db_url and db_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
-# --- CONFIGURAÇÃO JWT EXPLÍCITA (COM CORREÇÃO DE CSRF) ---
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
-# --- ESTA É A CORREÇÃO: Desativa a proteção CSRF ---
-app.config['JWT_CSRF_PROTECTION'] = False
-# --- FIM DA CORREÇÃO ---
+app.config['JWT_CSRF_PROTECTION'] = False # Desativa o CSRF que estava a causar o erro 422
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
-
-# --- (Removido o "espião" @app.before_request, já não precisamos dele) ---
 
 # --- 2. MODELO DE UTILIZADOR ---
 class User(db.Model):
@@ -88,6 +83,7 @@ def health_check():
 # --- 3. ROTAS DE AUTENTICAÇÃO ---
 @app.route('/api/register', methods=['POST'])
 def register():
+    # (Esta rota permanece igual)
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -113,7 +109,10 @@ def login():
     password = data.get('password')
     user = User.query.filter_by(username=username).first()
     if user and user.check_password(password):
-        access_token = create_access_token(identity=user.id)
+        # --- ESTA É A CORREÇÃO ---
+        # Vamos criar o token usando o ID como uma STRING
+        access_token = create_access_token(identity=str(user.id))
+        # --- FIM DA CORREÇÃO ---
         return jsonify(access_token=access_token)
     return jsonify({"msg": "Usuário ou senha inválidos"}), 401
 
@@ -121,8 +120,15 @@ def login():
 @jwt_required()
 def get_client_data():
     try:
-        current_user_id = get_jwt_identity()
-        print(f"Buscando dados para o user_id: {current_user_id}")
+        # --- CORREÇÃO DE LEITURA ---
+        # A identidade agora virá como uma STRING
+        current_user_id_str = get_jwt_identity()
+        print(f"Buscando dados para o user_id (string): {current_user_id_str}")
+        
+        # Convertemos de volta para INT para procurar no banco
+        current_user_id = int(current_user_id_str)
+        # --- FIM DA CORREÇÃO ---
+
         user = User.query.get(current_user_id)
         if not user:
             print(f"ERRO: Usuário com ID {current_user_id} não foi encontrado no banco de dados.")
