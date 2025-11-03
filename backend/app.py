@@ -17,7 +17,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 
 app = Flask(__name__)
 
-# Sua configuração de CORS para produção (corrigi a vírgula faltante)
+# Sua configuração de CORS para produção
 allowed_origins = [
     "https://exportacaohevile.netlify.app", # Seu site de produção
     "http://localhost:3000"                # Seu site de desenvolvimento
@@ -26,14 +26,11 @@ CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 # ==================================
 # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS E AUTENTICAÇÃO ---
 
-# Pega a URL do banco de dados que você configurou no Render
 db_url = os.environ.get('DATABASE_URL')
-# O Render usa 'postgres://' mas o SQLAlchemy espera 'postgresql://'
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-# IMPORTANTE: Mude esta chave no Render para algo secreto
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
 db = SQLAlchemy(app)
@@ -46,7 +43,6 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     
-    # Dados pré-preenchidos
     shipperName = db.Column(db.String(255), nullable=True)
     shipperInfo = db.Column(db.Text, nullable=True)
     consignee = db.Column(db.Text, nullable=True)
@@ -64,8 +60,6 @@ class User(db.Model):
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    # Esta é uma rota de ajuda para você criar usuários.
-    # Você pode usar o Postman ou Insomnia para enviar um JSON para esta rota.
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -105,22 +99,35 @@ def login():
     
     return jsonify({"msg": "Usuário ou senha inválidos"}), 401
 
+# --- ROTA ATUALIZADA COM LOGS DE DEBUG ---
 @app.route('/api/get-client-data', methods=['GET'])
 @jwt_required()
 def get_client_data():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({"msg": "Usuário não encontrado"}), 404
+    try:
+        current_user_id = get_jwt_identity()
+        # Adicionamos um log para sabermos o que está acontecendo
+        print(f"Buscando dados para o user_id: {current_user_id}")
+
+        user = User.query.get(current_user_id)
         
-    return jsonify({
-        "shipperName": user.shipperName,
-        "shipperInfo": user.shipperInfo,
-        "consignee": user.consignee,
-        "notifyParty": user.notifyParty,
-        "notifyParty2": user.notifyParty2
-    })
+        if not user:
+            # Se o usuário não for encontrado, saberemos o ID
+            print(f"ERRO: Usuário com ID {current_user_id} não foi encontrado no banco de dados.")
+            return jsonify({"msg": "Usuário não encontrado"}), 404
+            
+        print(f"Usuário {user.username} encontrado. Retornando dados.")
+        return jsonify({
+            "shipperName": user.shipperName,
+            "shipperInfo": user.shipperInfo,
+            "consignee": user.consignee,
+            "notifyParty": user.notifyParty,
+            "notifyParty2": user.notifyParty2
+        })
+    except Exception as e:
+        # Se qualquer outro erro acontecer (ex: falha no JWT, DB), ele será impresso
+        print(f"ERRO CRÍTICO EM GET_CLIENT_DATA: {e}")
+        return jsonify({"msg": "Erro interno no servidor", "error": str(e)}), 500
+# --- FIM DA ATUALIZAÇÃO ---
 
 # =====================================================================
 # --- 4. ROTA EXISTENTE (AGORA PROTEGIDA) ---
@@ -128,12 +135,11 @@ def get_client_data():
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.route('/api/generate-file', methods=['POST'])
-@jwt_required() # <--- ADICIONADO: Protege a rota
+@jwt_required()
 def handle_form():
-    # (O resto do seu código de geração de Excel permanece o mesmo)
     if not request.json:
         return {"error": "Missing JSON"}, 400
-    # ... (todo o seu código de openpyxl) ...
+
     data = request.json
     
     workbook = openpyxl.Workbook()
@@ -144,7 +150,7 @@ def handle_form():
     try:
         sheet.page_setup.paper_size = sheet.page_setup.PAPERSIZE_A4
     except AttributeError:
-        sheet.page_setup.paper_size = '9' # 9 é o código para A4
+        sheet.page_setup.paper_size = '9' 
         
     sheet.page_setup.fitToWidth = 1
     sheet.page_setup.fitToHeight = 0
@@ -348,7 +354,7 @@ def handle_form():
             sheet.cell(row=row_idx, column=col_idx).border = dotted_border
 
     # -- Seção 8: Rodapé --
-    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER..." # Texto completo omitido por você (mantido)
+    remarks_text = "RECEIVED BY THE CARRIER FROM THE SHIPPER..." 
     cell = sheet['A70']; cell.value = remarks_text; cell.alignment = align_left_top; cell.font = small_font; sheet.merge_cells('A70:I79')
     
     cell = sheet['A80']; cell.value = "RECEIPT FOR DELIVERY APPLY TO:"; cell.alignment = align_left_top; sheet.merge_cells('A80:I89')
@@ -403,4 +409,3 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
