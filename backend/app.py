@@ -1,4 +1,4 @@
-# backend/app.py - VERSÃO COM "ESPIÃO" DE CABEÇALHOS
+# backend/app.py - VERSÃO COM CORREÇÃO DEFINITIVA DE CSRF
 
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
@@ -30,29 +30,19 @@ if db_url and db_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'fallback-secreto-local') 
 
-# --- CONFIGURAÇÃO JWT EXPLÍCITA (PARA DEBUG) ---
-# Diz ao JWT para procurar o token exatamente aqui
+# --- CONFIGURAÇÃO JWT EXPLÍCITA (COM CORREÇÃO DE CSRF) ---
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
-# --- FIM DA CONFIGURAÇÃO EXPLÍCITA ---
+# --- ESTA É A CORREÇÃO: Desativa a proteção CSRF ---
+app.config['JWT_CSRF_PROTECTION'] = False
+# --- FIM DA CORREÇÃO ---
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
-# ==================================
-# --- O NOSSO "ESPIÃO" DE CABEÇALHOS ---
-@app.before_request
-def log_request_info():
-    # Esta função é executada ANTES de qualquer rota
-    # Vamos verificar apenas os pedidos que nos interessam
-    if request.path == '/api/get-client-data':
-        print("--- [DEBUG] CABEÇALHOS A CHEGAR EM /api/get-client-data ---")
-        # Imprime todos os cabeçalhos que o servidor está a ver
-        print(request.headers)
-        print("--- [DEBUG] FIM DOS CABEÇALHOS ---")
-# ==================================
+# --- (Removido o "espião" @app.before_request, já não precisamos dele) ---
 
 # --- 2. MODELO DE UTILIZADOR ---
 class User(db.Model):
